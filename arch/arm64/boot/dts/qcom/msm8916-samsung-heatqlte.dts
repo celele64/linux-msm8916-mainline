@@ -21,6 +21,50 @@
 	compatible = "samsung,heatqlte", "qcom,msm8916";
 	chassis-type = "handset";
 
+	/delete-node/ regulator-vdd-tsp-a;
+
+	reg_vdd_touchkey_led: regulator-vdd-touchkey-led {
+		compatible = "regulator-fixed";
+		regulator-name = "vdd_touchkey_led";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+
+		gpio = <&tlmm 60 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	reg_vcc_touchkey: regulator-vcc-touchkey {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_touchkey";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+
+		gpio = <&tlmm 11 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+	};
+
+	i2c_touchkey: i2c-touchkey {
+		compatible = "i2c-gpio";
+		sda-gpios = <&tlmm 8 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+		scl-gpios = <&tlmm 10 (GPIO_ACTIVE_HIGH|GPIO_OPEN_DRAIN)>;
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		touchkey@20 {
+			compatible = "cypress,tm2-touchkey";
+			reg = <0x20>;
+
+			interrupt-parent = <&tlmm>;
+			interrupts = <9 IRQ_TYPE_EDGE_RISING>;
+
+			vcc-supply = <&reg_vcc_touchkey>;
+			vdd-supply = <&reg_vdd_touchkey_led>;
+
+			linux,keycodes = <KEY_APPSELECT KEY_BACK>;
+		};
+};
+
 };
 
 &battery {
