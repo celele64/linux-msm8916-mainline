@@ -55,10 +55,19 @@ static const struct i2c_device_id cyttsp4_i2c_id[] = {
 };
 MODULE_DEVICE_TABLE(i2c, cyttsp4_i2c_id);
 
+#ifdef CONFIG_OF
+static const struct of_device_id cyttsp4_of_match[] = {
+	{ .compatible = "cypress,tma445" },
+	{ },
+};
+MODULE_DEVICE_TABLE(of, cyttsp4_of_match);
+#endif
+
 static struct i2c_driver cyttsp4_i2c_driver = {
 	.driver = {
 		.name	= "cyttsp4_i2c_adapter",
 		.pm	= pm_ptr(&cyttsp4_pm_ops),
+		.of_match_table = of_match_ptr(cyttsp4_of_match),
 	},
 	.probe		= cyttsp4_i2c_probe,
 	.remove		= cyttsp4_i2c_remove,
