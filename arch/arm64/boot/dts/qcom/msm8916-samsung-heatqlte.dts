@@ -20,6 +20,7 @@
 	model = "Samsung Galaxy Ace 4 (SM-G357FZ)";
 	compatible = "samsung,heatqlte", "qcom,msm8916";
 	chassis-type = "handset";
+
 };
 
 &battery {
@@ -46,6 +47,7 @@
 		interrupt-parent = <&tlmm>;
 		interrupts = <13 IRQ_TYPE_EDGE_FALLING>;
 
+		power-gpios = <&tlmm 73 GPIO_ACTIVE_HIGH>;
 		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
 	};
 };
