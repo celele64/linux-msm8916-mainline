@@ -35,3 +35,17 @@
 &panel {
 	compatible = "samsung,s6288a0";
 };
+
+&blsp_i2c5 {
+	status = "okay";
+
+	touchscreen@24 {
+		compatible = "cypress,tma445";
+		reg = <0x24>;
+
+		interrupt-parent = <&tlmm>;
+		interrupts = <13 IRQ_TYPE_EDGE_FALLING>;
+
+		reset-gpios = <&tlmm 98 GPIO_ACTIVE_LOW>;
+	};
+};
