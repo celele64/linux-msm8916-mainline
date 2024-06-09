@@ -37,6 +37,7 @@ static inline struct samsung *to_samsung(struct drm_panel *panel)
 
 static void samsung_reset(struct samsung *ctx)
 {
+	dev_dbg(&ctx->dsi->dev, "Reset\n");
 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
 	usleep_range(5000, 6000);
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
@@ -45,11 +46,38 @@ static void samsung_reset(struct samsung *ctx)
 	usleep_range(10000, 11000);
 }
 
+static int samsung_send_dcs_aid(struct mipi_dsi_device *dsi, u16 brightness)
+{
+	u8 payload[5] = { 0x40, 0x08, 0x20, 0, 0 };
+	int ret;
+	u16 aid;
+
+	//Calculate AID value from brightness level
+	if (brightness > MAX_BRIGHTNESS)
+		brightness = MAX_BRIGHTNESS;
+	aid = (MAX_BRIGHTNESS - brightness) + AID_MIN;
+	payload[3] = (aid >> 8) & 0xff;
+	payload[4] = aid & 0xff;
+
+	dev_dbg(&dsi->dev, "Set AID: %u\n", aid);
+
+	//Set AID
+	ret = mipi_dsi_dcs_write(dsi, 0xb2, payload, sizeof(payload));
+	if (ret < 0) {
+		dev_err(&dsi->dev, "Failed to set AID: %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 static int samsung_on(struct samsung *ctx)
 {
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
 	int ret;
+
+	dev_dbg(dev, "Turn ON\n");
 
 	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 
@@ -82,7 +110,9 @@ static int samsung_on(struct samsung *ctx)
 				0x00, 0x00, 0x00);                  // VT   RGB
 
 	//Set AID
-	mipi_dsi_dcs_write_seq(dsi, 0xb2, 0x40, 0x08, 0x20, 0x00, 0x08);
+	/* We need the actual backlight value even while blank, hence why the
+	 * value is read directly instead of via backlight_get_brightness() */
+	samsung_send_dcs_aid(dsi, ctx->panel.backlight->props.brightness);
 
 	//Set ELVSS condition
 	mipi_dsi_dcs_write_seq(dsi, 0xb6, 0x28, 0x0b);
@@ -111,10 +141,12 @@ static int samsung_off(struct samsung *ctx)
 	struct device *dev = &dsi->dev;
 	int ret;
 
+	dev_dbg(dev, "Turn OFF\n");
+
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
-	//Tesk key OFF Disable level 1 control commands
-	//~ mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
+	//Tesk key OFF - Disable level 1 control commands
+	mipi_dsi_dcs_write_seq(dsi, 0xf0, 0xa5, 0xa5);
 
 	ret = mipi_dsi_dcs_set_display_off(dsi);
 	if (ret < 0) {
@@ -138,6 +170,8 @@ static int samsung_prepare(struct drm_panel *panel)
 	struct samsung *ctx = to_samsung(panel);
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
+
+	dev_dbg(dev, "Prepare\n");
 
 	if (ctx->prepared)
 		return 0;
@@ -167,6 +201,8 @@ static int samsung_unprepare(struct drm_panel *panel)
 	struct samsung *ctx = to_samsung(panel);
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
+
+	dev_dbg(dev, "Unprepare\n");
 
 	if (!ctx->prepared)
 		return 0;
@@ -212,24 +248,17 @@ static const struct drm_panel_funcs samsung_panel_funcs = {
 static int samsung_bl_update_status(struct backlight_device *bl)
 {
 	struct mipi_dsi_device *dsi = bl_get_data(bl);
-	u8 payload[5] = { 0x40, 0x08, 0x20, 0, 0 };
 	int ret;
 	u16 brightness = backlight_get_brightness(bl);
-	u16 aid;
 
-	//Calculate AID value from brightness level
-	if (brightness > MAX_BRIGHTNESS)
-		brightness = MAX_BRIGHTNESS;
-	aid = (MAX_BRIGHTNESS - brightness) + AID_MIN;
-	payload[3] = (aid >> 8) & 0xff;
-	payload[4] = aid & 0xff;
-	//printk(KERN_INFO "s6288a0 bl_update_status: brightness: %u aid: %u\n", brightness, aid);
+	dev_dbg(&dsi->dev, "Backlight update: brightness=%u blank=%d\n",
+			brightness, backlight_is_blank(bl));
 
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
 	//Set AID
-	ret = mipi_dsi_dcs_write(dsi, 0xb2, payload, sizeof(payload));
-	if (ret < 0)
+	ret = samsung_send_dcs_aid(dsi, brightness);
+	if (ret != 0)
 		return ret;
 
 	//Update gamma, LTPS(AID)
@@ -266,6 +295,8 @@ static int samsung_probe(struct mipi_dsi_device *dsi)
 	struct device *dev = &dsi->dev;
 	struct samsung *ctx;
 	int ret;
+
+	dev_dbg(dev, "Probing module\n");
 
 	ctx = devm_kzalloc(dev, sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
@@ -308,6 +339,8 @@ static int samsung_probe(struct mipi_dsi_device *dsi)
 		return dev_err_probe(dev, ret, "Failed to attach to DSI host\n");
 	}
 
+	dev_info(dev, "ready\n");
+
 	return 0;
 }
 
@@ -315,6 +348,8 @@ static void samsung_remove(struct mipi_dsi_device *dsi)
 {
 	struct samsung *ctx = mipi_dsi_get_drvdata(dsi);
 	int ret;
+
+	dev_dbg(&dsi->dev, "Removing module\n");
 
 	ret = mipi_dsi_detach(dsi);
 	if (ret < 0)
