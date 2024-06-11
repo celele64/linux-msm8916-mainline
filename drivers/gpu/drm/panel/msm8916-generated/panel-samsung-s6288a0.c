@@ -37,7 +37,6 @@ static inline struct samsung *to_samsung(struct drm_panel *panel)
 
 static void samsung_reset(struct samsung *ctx)
 {
-	dev_dbg(&ctx->dsi->dev, "Reset\n");
 	gpiod_set_value_cansleep(ctx->reset_gpio, 0);
 	usleep_range(5000, 6000);
 	gpiod_set_value_cansleep(ctx->reset_gpio, 1);
@@ -59,8 +58,6 @@ static int samsung_send_dcs_aid(struct mipi_dsi_device *dsi, u16 brightness)
 	payload[3] = (aid >> 8) & 0xff;
 	payload[4] = aid & 0xff;
 
-	dev_dbg(&dsi->dev, "Set AID: %u\n", aid);
-
 	//Set AID
 	ret = mipi_dsi_dcs_write(dsi, 0xb2, payload, sizeof(payload));
 	if (ret < 0) {
@@ -76,8 +73,6 @@ static int samsung_on(struct samsung *ctx)
 	struct mipi_dsi_device *dsi = ctx->dsi;
 	struct device *dev = &dsi->dev;
 	int ret;
-
-	dev_dbg(dev, "Turn ON\n");
 
 	dsi->mode_flags |= MIPI_DSI_MODE_LPM;
 
@@ -141,8 +136,6 @@ static int samsung_off(struct samsung *ctx)
 	struct device *dev = &dsi->dev;
 	int ret;
 
-	dev_dbg(dev, "Turn OFF\n");
-
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
 	//Tesk key OFF - Disable level 1 control commands
@@ -170,8 +163,6 @@ static int samsung_prepare(struct drm_panel *panel)
 	struct samsung *ctx = to_samsung(panel);
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
-
-	dev_dbg(dev, "Prepare\n");
 
 	if (ctx->prepared)
 		return 0;
@@ -201,8 +192,6 @@ static int samsung_unprepare(struct drm_panel *panel)
 	struct samsung *ctx = to_samsung(panel);
 	struct device *dev = &ctx->dsi->dev;
 	int ret;
-
-	dev_dbg(dev, "Unprepare\n");
 
 	if (!ctx->prepared)
 		return 0;
@@ -296,8 +285,6 @@ static int samsung_probe(struct mipi_dsi_device *dsi)
 	struct samsung *ctx;
 	int ret;
 
-	dev_dbg(dev, "Probing module\n");
-
 	ctx = devm_kzalloc(dev, sizeof(*ctx), GFP_KERNEL);
 	if (!ctx)
 		return -ENOMEM;
@@ -348,8 +335,6 @@ static void samsung_remove(struct mipi_dsi_device *dsi)
 {
 	struct samsung *ctx = mipi_dsi_get_drvdata(dsi);
 	int ret;
-
-	dev_dbg(&dsi->dev, "Removing module\n");
 
 	ret = mipi_dsi_detach(dsi);
 	if (ret < 0)
