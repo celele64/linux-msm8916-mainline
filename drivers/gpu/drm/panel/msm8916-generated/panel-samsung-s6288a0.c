@@ -105,8 +105,8 @@ static int samsung_on(struct samsung *ctx)
 				0x00, 0x00, 0x00);                  // VT   RGB
 
 	//Set AID
-	/* We need the actual backlight value even while blank, hence why the
-	 * value is read directly instead of via backlight_get_brightness() */
+	// We need the actual backlight value even while blank, hence why the
+	// value is read directly instead of via backlight_get_brightness()
 	samsung_send_dcs_aid(dsi, ctx->panel.backlight->props.brightness);
 
 	//Set ELVSS condition
