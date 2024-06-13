@@ -240,9 +240,6 @@ static int samsung_bl_update_status(struct backlight_device *bl)
 	int ret;
 	u16 brightness = backlight_get_brightness(bl);
 
-	dev_dbg(&dsi->dev, "Backlight update: brightness=%u blank=%d\n",
-			brightness, backlight_is_blank(bl));
-
 	dsi->mode_flags &= ~MIPI_DSI_MODE_LPM;
 
 	//Set AID
@@ -325,8 +322,6 @@ static int samsung_probe(struct mipi_dsi_device *dsi)
 		drm_panel_remove(&ctx->panel);
 		return dev_err_probe(dev, ret, "Failed to attach to DSI host\n");
 	}
-
-	dev_info(dev, "ready\n");
 
 	return 0;
 }
