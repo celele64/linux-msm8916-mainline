@@ -20,7 +20,7 @@
 //From downstream dt property "samsung,panel-aid-cmds-list-350"
 #define AID_MIN 8
 #define AID_MAX 785
-#define MAX_BRIGHTNESS AID_MAX-AID_MIN
+#define MAX_BRIGHTNESS (AID_MAX - AID_MIN)
 
 struct samsung {
 	struct drm_panel panel;
